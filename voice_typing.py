@@ -28,7 +28,7 @@ stream = mic.open(
     frames_per_buffer=8192
 )
 
-print("Говорите! Нажмите Ctrl+C для выхода.")
+print("Говорите! Нажмите Ctrl+Z для выхода.")
 
 def send_text(text):
     """Вставляет текст через xdotool (работает без root в X11)"""
