@@ -44,37 +44,57 @@ print("Говорите! Нажмите Ctrl+C для выхода.")
 
 is_listening = False
 buffer = []
+shift_pressed = False
+immediate_insert = True  # Флаг для немедленной вставки
 
 def on_press(key):
-    global is_listening
-    if key == keyboard.Key.space:
+    global is_listening, shift_pressed, immediate_insert
+    if key == keyboard.Key.shift:
+        shift_pressed = True
+    elif key == keyboard.Key.f12 and shift_pressed:
         is_listening = not is_listening
         if is_listening:
             print("Начинаем распознавание...")
         else:
             print("Останавливаем распознавание...")
             time.sleep(0.1)
+            print(f"buffer: {buffer}")
             if buffer:
                 text = " ".join(buffer)
                 print(f"Распознано: {text}")
-                send_text(  text + " ")
+                pyperclip.copy(text)  # Копируем в буфер только при остановке
                 buffer.clear()
+    elif key == keyboard.Key.f11 and shift_pressed:
+        immediate_insert = not immediate_insert
+        print(f"Немедленная вставка: {'включена' if immediate_insert else 'выключена'}")
+
+def on_release(key):
+    global shift_pressed
+    if key == keyboard.Key.shift:
+        shift_pressed = False
 
 def main():
-    listener = keyboard.Listener(on_press=on_press)
+    listener = keyboard.Listener(on_press=on_press, on_release=on_release)
     listener.start()
 
     try:
         while True:
             if is_listening:
-                data = stream.read(4096)
+                data = stream.read(2048)
                 if recognizer.AcceptWaveform(data):
                     result = json.loads(recognizer.Result())
                     text = result.get("text", "").strip()
                     if text:
-                        buffer.append(text)
-            #else:
-            #    time.sleep(0.1)
+                        print(f"Распознано - : {text}")  # Вывод в реальном времени
+                        if immediate_insert:
+                            #send_text(text + " ")
+                            pass
+                        else:
+                            buffer.append(text)
+                            if len(buffer) > 3:
+                                text = " ".join(buffer)
+                                #send_text(text + " ")
+                                #buffer.clear()
 
     except KeyboardInterrupt:
         print("\nОстановлено пользователем.")
