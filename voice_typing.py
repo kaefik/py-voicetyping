@@ -6,6 +6,7 @@ import pyaudio
 import pyperclip
 import subprocess
 import time
+from pynput import keyboard
 
 # Укажите путь к модели Vosk
 model_path = "model_ru"
@@ -41,20 +42,39 @@ def send_text(text):
 
 print("Говорите! Нажмите Ctrl+C для выхода.")
 
+is_listening = False
+buffer = []
 
-# распознование текста
+def on_press(key):
+    global is_listening
+    if key == keyboard.Key.space:
+        is_listening = not is_listening
+        if is_listening:
+            print("Начинаем распознавание...")
+        else:
+            print("Останавливаем распознавание...")
+            time.sleep(0.1)
+            if buffer:
+                text = " ".join(buffer)
+                print(f"Распознано: {text}")
+                send_text(  text + " ")
+                buffer.clear()
 
 def main():
+    listener = keyboard.Listener(on_press=on_press)
+    listener.start()
 
     try:
         while True:
-            data = stream.read(4096)
-            if recognizer.AcceptWaveform(data):
-                result = json.loads(recognizer.Result())
-                text = result.get("text", "").strip()
-                if text:
-                    print(f"Распознано: {text}")
-                    send_text(text + " ")  # Добавляем пробел для удобства
+            if is_listening:
+                data = stream.read(4096)
+                if recognizer.AcceptWaveform(data):
+                    result = json.loads(recognizer.Result())
+                    text = result.get("text", "").strip()
+                    if text:
+                        buffer.append(text)
+            #else:
+            #    time.sleep(0.1)
 
     except KeyboardInterrupt:
         print("\nОстановлено пользователем.")
@@ -62,7 +82,7 @@ def main():
         stream.stop_stream()
         stream.close()
         mic.terminate()
-
+        listener.stop()
 
 if __name__ == "__main__":
     main()
