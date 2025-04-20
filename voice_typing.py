@@ -28,8 +28,6 @@ stream = mic.open(
     frames_per_buffer=8192
 )
 
-print("Говорите! Нажмите Ctrl+C для выхода.")
-
 def send_text(text):
     """Вставляет текст через xdotool (работает без root в X11)"""
     try:
@@ -39,20 +37,32 @@ def send_text(text):
     except:
         # Fallback: просто копируем в буфер (пользователь вставит вручную)
         print(f"Текст скопирован в буфер: '{text}'")
+        
 
-try:
-    while True:
-        data = stream.read(4096)
-        if recognizer.AcceptWaveform(data):
-            result = json.loads(recognizer.Result())
-            text = result.get("text", "").strip()
-            if text:
-                print(f"Распознано: {text}")
-                send_text(text + " ")  # Добавляем пробел для удобства
+print("Говорите! Нажмите Ctrl+C для выхода.")
 
-except KeyboardInterrupt:
-    print("\nОстановлено пользователем.")
-finally:
-    stream.stop_stream()
-    stream.close()
-    mic.terminate()
+
+# распознование текста
+
+def main():
+
+    try:
+        while True:
+            data = stream.read(4096)
+            if recognizer.AcceptWaveform(data):
+                result = json.loads(recognizer.Result())
+                text = result.get("text", "").strip()
+                if text:
+                    print(f"Распознано: {text}")
+                    send_text(text + " ")  # Добавляем пробел для удобства
+
+    except KeyboardInterrupt:
+        print("\nОстановлено пользователем.")
+    finally:
+        stream.stop_stream()
+        stream.close()
+        mic.terminate()
+
+
+if __name__ == "__main__":
+    main()
