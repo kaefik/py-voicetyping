@@ -16,20 +16,13 @@ if not os.path.exists(model_path):
     print("Скачайте её с https://alphacephei.com/vosk/models и распакуйте в текущую папку.")
     sys.exit(1)
 
-# Настройка микрофона
-mic = pyaudio.PyAudio()
-stream = mic.open(
-    format=pyaudio.paInt16,
-    channels=1,
-    rate=16000,
-    input=True,
-    frames_per_buffer=8192
-)
+
 
 is_listening = False
 buffer = []
 shift_pressed = False
 immediate_insert = True  # Флаг для немедленной вставки
+is_running = True
 
 def send_text(text):
     """Вставляет текст через xdotool (работает без root в X11)"""
@@ -43,7 +36,7 @@ def send_text(text):
         
 
 def on_press(key):
-    global is_listening, shift_pressed, immediate_insert, buffer
+    global is_listening, shift_pressed, immediate_insert, buffer, is_running
     if key == keyboard.Key.shift:
         shift_pressed = True
     elif key == keyboard.Key.f12 and shift_pressed:
@@ -63,6 +56,20 @@ def on_press(key):
     elif key == keyboard.Key.f11 and shift_pressed:
         immediate_insert = not immediate_insert
         print(f"Немедленная вставка: {'включена' if immediate_insert else 'выключена'}")
+    elif key == keyboard.Key.esc:  # Добавляем обработку ESC для остановки в auto-start режиме
+        if is_listening:
+            is_listening = False
+            print("Останавливаем распознавание...")
+            time.sleep(0.1)
+            if buffer:
+                text = " ".join(buffer)
+                print(f"Распознано: {text}")
+                pyperclip.copy(text)
+                print(f"Текст скопирован в буфер: '{text}'")
+                buffer.clear()
+            print("\nВыход из программы...")
+            is_running = False
+                
 
 def on_release(key):
     global shift_pressed
@@ -74,6 +81,16 @@ def main():
     parser = argparse.ArgumentParser(description='Голосовой ввод текста')
     parser.add_argument('--auto-start', action='store_true', help='Автоматически начать распознавание при запуске')
     args = parser.parse_args()
+
+    # Настройка микрофона
+    mic = pyaudio.PyAudio()
+    stream = mic.open(
+        format=pyaudio.paInt16,
+        channels=1,
+        rate=16000,
+        input=True,
+        frames_per_buffer=8192
+    )
 
     # Инициализация модели
     model = Model(model_path)
@@ -94,7 +111,7 @@ def main():
 
 
     try:
-        while True:
+        while is_running:
             if is_listening:
                 data = stream.read(2048)
                 if recognizer.AcceptWaveform(data):
