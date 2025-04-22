@@ -40,7 +40,7 @@ def send_text(text):
         print(f"Текст скопирован в буфер: '{text}'")
         
 
-print("Говорите! Нажмите Ctrl+C для выхода.")
+print("Для включения/отключения распознавания нажмите  Shift+F12.\nДля выхода из программы нажмите Ctrl+C.")
 
 is_listening = False
 buffer = []
