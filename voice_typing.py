@@ -15,10 +15,6 @@ if not os.path.exists(model_path):
     print("Скачайте её с https://alphacephei.com/vosk/models и распакуйте в текущую папку.")
     sys.exit(1)
 
-# Инициализация модели
-model = Model(model_path)
-recognizer = KaldiRecognizer(model, 16000)
-
 # Настройка микрофона
 mic = pyaudio.PyAudio()
 stream = mic.open(
@@ -28,6 +24,11 @@ stream = mic.open(
     input=True,
     frames_per_buffer=8192
 )
+
+is_listening = False
+buffer = []
+shift_pressed = False
+immediate_insert = True  # Флаг для немедленной вставки
 
 def send_text(text):
     """Вставляет текст через xdotool (работает без root в X11)"""
@@ -40,15 +41,8 @@ def send_text(text):
         print(f"Текст скопирован в буфер: '{text}'")
         
 
-print("Для включения/отключения распознавания нажмите  Shift+F12.\nДля выхода из программы нажмите Ctrl+C.")
-
-is_listening = False
-buffer = []
-shift_pressed = False
-immediate_insert = True  # Флаг для немедленной вставки
-
 def on_press(key):
-    global is_listening, shift_pressed, immediate_insert
+    global is_listening, shift_pressed, immediate_insert, buffer
     if key == keyboard.Key.shift:
         shift_pressed = True
     elif key == keyboard.Key.f12 and shift_pressed:
@@ -63,6 +57,7 @@ def on_press(key):
                 text = " ".join(buffer)
                 print(f"Распознано: {text}")
                 pyperclip.copy(text)  # Копируем в буфер только при остановке
+                print(f"Текст скопирован в буфер: '{text}'")
                 buffer.clear()
     elif key == keyboard.Key.f11 and shift_pressed:
         immediate_insert = not immediate_insert
@@ -74,8 +69,18 @@ def on_release(key):
         shift_pressed = False
 
 def main():
+    # Инициализация модели
+    model = Model(model_path)
+    recognizer = KaldiRecognizer(model, 16000)
+
     listener = keyboard.Listener(on_press=on_press, on_release=on_release)
     listener.start()
+
+    print("Для включения/отключения распознавания нажмите  Shift+F12.\nДля выхода из программы нажмите Ctrl+C.")
+    print("Для включения/отключения немедленной вставки нажмите  Shift+F11.")
+
+
+
 
     try:
         while True:
@@ -88,13 +93,10 @@ def main():
                         print(f"Распознано - : {text}")  # Вывод в реальном времени
                         if immediate_insert:
                             #send_text(text + " ")
-                            pass
-                        else:
                             buffer.append(text)
-                            if len(buffer) > 3:
-                                text = " ".join(buffer)
-                                #send_text(text + " ")
-                                #buffer.clear()
+                            print(f"buffer: {buffer}")
+                            
+
 
     except KeyboardInterrupt:
         print("\nОстановлено пользователем.")
