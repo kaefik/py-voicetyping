@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import argparse
 from vosk import Model, KaldiRecognizer
 import pyaudio
 import pyperclip
@@ -69,6 +70,11 @@ def on_release(key):
         shift_pressed = False
 
 def main():
+    # Парсинг аргументов командной строки
+    parser = argparse.ArgumentParser(description='Голосовой ввод текста')
+    parser.add_argument('--auto-start', action='store_true', help='Автоматически начать распознавание при запуске')
+    args = parser.parse_args()
+
     # Инициализация модели
     model = Model(model_path)
     recognizer = KaldiRecognizer(model, 16000)
@@ -76,9 +82,14 @@ def main():
     listener = keyboard.Listener(on_press=on_press, on_release=on_release)
     listener.start()
 
-    print("Для включения/отключения распознавания нажмите  Shift+F12.\nДля выхода из программы нажмите Ctrl+C.")
-    print("Для включения/отключения немедленной вставки нажмите  Shift+F11.")
-
+    # Автоматический старт если указан флаг
+    if args.auto_start:
+        global is_listening
+        is_listening = True
+        print("Автоматически начато распознавание...")
+    else:
+        print("Для включения/отключения распознавания нажмите  Shift+F12.\nДля выхода из программы нажмите Ctrl+C.")
+        print("Для включения/отключения немедленной вставки нажмите  Shift+F11.")
 
 
 
